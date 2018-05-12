@@ -7,13 +7,22 @@
 void KeyInit(void)
 {
  	GPIO_InitTypeDef GPIO_InitStructure;
- 
+
+	// key_up ,key_dn,key_ok
  	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
-	GPIO_InitStructure.GPIO_Pin  = KEY_UP | KEY_DN | KEY_OK;
+	GPIO_InitStructure.GPIO_Pin  = KEY_UP_PIN | KEY_DN_PIN | KEY_OK_PIN;
+ 	GPIO_Init(KEY_MENU_PORT, &GPIO_InitStructure);
+	GPIO_ResetBits(KEY_MENU_PORT,KEY_UP_PIN | KEY_DN_PIN | KEY_OK_PIN);
+
+	// KEY_POWER
+ 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
+	GPIO_InitStructure.GPIO_Pin  = KEY_POWER_PIN;
  	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_ResetBits(GPIOB,KEY_UP | KEY_DN | KEY_OK);
+	GPIO_SetBits(GPIOB,KEY_POWER_PIN);	
 }
 
 #define 	ADC_KEY_SCAN_TIME			20
@@ -26,9 +35,11 @@ void KeyInit(void)
 static const uint16_t AdcKeyEvent[][5] = 
 {
 //	PDS(按键开始)		SPR(短按松开)		CPS(长按开始)		CPH(长按保持)		CPR(长按松开)
-	{MSG_UP,			MSG_NONE, 	MSG_NONE, 		MSG_NONE, 		MSG_NONE	},	//SW1
-	{MSG_DN,			MSG_NONE, 	MSG_NONE, 		MSG_NONE, 		MSG_NONE	},	//SW2
-	{MSG_OK,			MSG_NONE, 	MSG_NONE, 		MSG_NONE, 		MSG_NONE	},	//SW3	
+	{MSG_NONE,	MSG_POWER_SHORT, 	MSG_NONE, 		MSG_POWER_LONG, MSG_NONE	},	//POWER
+
+	{MSG_UP,			MSG_NONE, 	MSG_NONE, 		MSG_NONE, 		MSG_NONE	},	//KEY_UP
+	{MSG_DN,			MSG_NONE, 	MSG_NONE, 		MSG_NONE, 		MSG_NONE	},	//KEY_DN
+	{MSG_OK,			MSG_NONE, 	MSG_NONE, 		MSG_NONE, 		MSG_NONE	},	//KEY_OK	
 																						
 };	
 
@@ -49,29 +60,34 @@ ADC_KEY_STATE	AdcKeyState;
 static uint8_t GetAdcKeyIndex(void)
 {
 	unsigned char key_up,key_dn,key_ok;
+	unsigned char key_power_det;
+	
 	key_up = READ_KEY_UP();
 	key_dn = READ_KEY_DN();
 	key_ok = READ_KEY_OK();
+	key_power_det = READ_POWER_DET();
+	
+	// POWER KEY
+	if(key_power_det == 0) {
+		return E_KEY_POWER;
+	}
 
-//	if(key_ok ==1)
-//	{
-//		return 0xff;
-//}
+	// MENU_KEY
 	if( key_up == 1 && key_dn == 0 && key_ok == 0)
 	{
-		return 0;
+		return E_KEY_UP;
 	}
 	else if(key_up == 0 && key_dn == 1 && key_ok == 0)
 	{
-		return 1;
+		return E_KEY_DN;
 	}
 	else if(key_up == 0 && key_dn == 0 && key_ok == 1)
 	{
-		return 2;
+		return E_KEY_OK;
 	}
 	else 
 	{
-		return 0xff;
+		return E_KEY_NONE;
 	}
 }
 
@@ -196,6 +212,12 @@ void KeyFunction(unsigned char msg)
 	{
 		uart_display_ok();
 	}
+	else if(msg == MSG_POWER_SHORT 
+			|| msg == MSG_POWER_LONG)
+	{
+		set_power_event(msg);
+	}
+
 }
 
 
@@ -203,10 +225,14 @@ void KeyFunction(unsigned char msg)
 
 void KeyTask(const u32 tick)
 {
+	uint16_t msg = 0;
 
 	if (RATE_DO_EXECUTE(RATE_1000_HZ, tick)) /** 100Hz 1ms update **/
 	{
-		KeyFunction(KeyScan());
+		msg = KeyScan();
+		
+		KeyFunction(msg);
+		
 		KeyTimer();
 	}
 }

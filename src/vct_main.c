@@ -15,7 +15,10 @@ void vctTask(void* param)
 	while(1) 
 	{
 		vTaskDelayUntil(&lastWakeTime, MAIN_LOOP_DT);		/*1ms÷‹∆⁄—” ±*/
-			
+
+
+		powermanager(tick);
+		
 		bc95Task(tick);
 
 		uart_displayTask(tick);
