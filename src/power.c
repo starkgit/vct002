@@ -33,11 +33,12 @@ bool vBatterySelectFlag;									// CLOSE    CHANGE
 #define batteryA_support_on()		vBatterySelectFlag = 1;PAout(1) = 1;PAout(8) = 1
 #define batteryB_support_on()		vBatterySelectFlag = 0;PAout(1) = 0;PAout(8) = 0
 
-// detect power key
+// power out
 bool vPowerSwitchFlag;									// CLOSE    CHANGE
 #define powerswitch_on()		vPowerSwitchFlag = 1;PDout(3) = 1
 #define powerswitch_off()		vPowerSwitchFlag = 0;PDout(3) = 0
 
+// display screen
 bool vPowerScreenFlag;
 #define powerscreen_on()			vPowerScreenFlag = 1;PBout(1) = 1
 #define powerscreen_off()			vPowerScreenFlag = 0;PBout(1) = 0
@@ -88,7 +89,7 @@ void PowerHardInit(void)
 {
 	GPIO_InitTypeDef  GPIO_InitStructure;
 
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOA, ENABLE);	 
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOD | RCC_APB2Periph_GPIOB | RCC_APB2Periph_GPIOA, ENABLE);	 
 
 	/* Close Jtag Function */
 	GPIO_PinRemapConfig(GPIO_Remap_SWJ_JTAGDisable , ENABLE);
@@ -110,7 +111,7 @@ void PowerHardInit(void)
 	GPIO_Init(GPIOD, &GPIO_InitStructure);			
 	powerswitch_off();
 }
-
+ 
 
 void set_power_event(unsigned char msg)
 {
@@ -130,48 +131,30 @@ power_status_E get_power_status(void)
 void power_off_status(void)
 {
 	switch (power_event){
-		case MSG_POWER_LONG:
+		case MSG_POWER_SHORT:
 			power_status = POWER_ON;
 			powerswitch_on();
-			powerscreen_on();
-			break;
-		case MSG_POWER_SHORT:
+ 			powerscreen_on();
 			break;
 		default:
 			break;
 		}
-}
-
-void power_lock_screen_status(void)
-{
-	switch (power_event){
-		case MSG_POWER_LONG:
-		case MSG_POWER_SHORT:
-			power_status = POWER_ON;
-			powerscreen_on();
-			break;
-		default:
-			break;
-		}
-
+		power_event = MSG_NONE;
 }
 
 void power_on_status(void)
 {
 	switch (power_event){
-		case MSG_POWER_LONG:
+		case MSG_POWER_SHORT:
 			power_status = POWER_OFF;
 			powerscreen_off();
 			powerswitch_off();
 			break;
-		case MSG_POWER_SHORT:
-			power_status = POWER_LOCK_SCREEN;
-			powerscreen_off();
-			break;
+
 		default:
 			break;
 		}
-
+	power_event = MSG_NONE;
 }
 
 void powermanager(const u32 tick)
@@ -181,13 +164,11 @@ void powermanager(const u32 tick)
 		case POWER_OFF:
 			power_off_status();
 			break;
-		case POWER_LOCK_SCREEN:
-			power_lock_screen_status();
-			break;
 		case POWER_ON:
 			power_on_status();
 			break;
 		default:
+			
 			break;
 	}
 }

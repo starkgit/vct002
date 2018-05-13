@@ -1,15 +1,18 @@
 #include "key.h"
 #include "stabilizer_types.h"
 #include "uart_display.h"
-
+#include "power.h"
 
 //LED IO初始化
 void KeyInit(void)
 {
  	GPIO_InitTypeDef GPIO_InitStructure;
 
+	/* Close Jtag Rst Function(HD STM32)*/
+	GPIO_PinRemapConfig(GPIO_Remap_SWJ_NoJTRST , ENABLE);
+
 	// key_up ,key_dn,key_ok
- 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
+ 	RCC_APB2PeriphClockCmd(KEY_MENU_RCC,ENABLE);
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPD;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Pin  = KEY_UP_PIN | KEY_DN_PIN | KEY_OK_PIN;
@@ -17,12 +20,12 @@ void KeyInit(void)
 	GPIO_ResetBits(KEY_MENU_PORT,KEY_UP_PIN | KEY_DN_PIN | KEY_OK_PIN);
 
 	// KEY_POWER
- 	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOB,ENABLE);
-	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IPU;
+ 	RCC_APB2PeriphClockCmd(KEY_POWER_RCC,ENABLE);
+	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING/*GPIO_Mode_IPU*/;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_InitStructure.GPIO_Pin  = KEY_POWER_PIN;
- 	GPIO_Init(GPIOB, &GPIO_InitStructure);
-	GPIO_SetBits(GPIOB,KEY_POWER_PIN);	
+ 	GPIO_Init(KEY_POWER_PORT, &GPIO_InitStructure);
+	GPIO_SetBits(KEY_POWER_PORT,KEY_POWER_PIN);	
 }
 
 #define 	ADC_KEY_SCAN_TIME			20
@@ -35,7 +38,7 @@ void KeyInit(void)
 static const uint16_t AdcKeyEvent[][5] = 
 {
 //	PDS(按键开始)		SPR(短按松开)		CPS(长按开始)		CPH(长按保持)		CPR(长按松开)
-	{MSG_NONE,	MSG_POWER_SHORT, 	MSG_NONE, 		MSG_POWER_LONG, MSG_NONE	},	//POWER
+	{MSG_POWER_SHORT,	MSG_NONE, 	MSG_NONE, 	MSG_NONE	, MSG_NONE	},	//POWER
 
 	{MSG_UP,			MSG_NONE, 	MSG_NONE, 		MSG_NONE, 		MSG_NONE	},	//KEY_UP
 	{MSG_DN,			MSG_NONE, 	MSG_NONE, 		MSG_NONE, 		MSG_NONE	},	//KEY_DN
@@ -213,7 +216,7 @@ void KeyFunction(unsigned char msg)
 		uart_display_ok();
 	}
 	else if(msg == MSG_POWER_SHORT 
-			|| msg == MSG_POWER_LONG)
+			)
 	{
 		set_power_event(msg);
 	}

@@ -5,7 +5,6 @@
 typedef enum
 {
 	POWER_OFF,
-	POWER_LOCK_SCREEN,
 	POWER_ON,
 }power_status_E;
 

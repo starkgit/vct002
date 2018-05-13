@@ -7,6 +7,7 @@
 #define KEY_DN_PIN 		GPIO_Pin_6
 #define KEY_OK_PIN		GPIO_Pin_5
 #define KEY_MENU_PORT	GPIOB
+#define KEY_MENU_RCC	RCC_APB2Periph_GPIOB
 
 
 #define READ_KEY_UP()  		GPIO_ReadInputDataBit(KEY_MENU_PORT,KEY_UP_PIN)	 
@@ -16,7 +17,8 @@
 
 #define KEY_POWER_PIN		GPIO_Pin_4
 #define KEY_POWER_PORT		GPIOD
-#define READ_POWER_DET()	GPIO_ReadInputDataBit(GPIOD,KEY_POWER_PIN)
+#define KEY_POWER_RCC		RCC_APB2Periph_GPIOD
+#define READ_POWER_DET()	GPIO_ReadInputDataBit(KEY_POWER_PORT,KEY_POWER_PIN)
 
 
 enum
@@ -36,7 +38,7 @@ enum
 {	
 	MSG_NONE				= 0x0000,	
 	MSG_POWER_SHORT,
-	MSG_POWER_LONG,
+//	MSG_POWER_LONG,
  	MSG_UP	,			
  	MSG_DN	,			
  	MSG_OK	,			
